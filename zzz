@@ -1,0 +1,197 @@
+-- ============================================================
+-- DESAFIO PRACTICO 2
+-- Practica Avanzada de SQL
+-- Base de datos: tienda_ropa_online
+-- Motor: MySQL
+-- ============================================================
+
+DROP DATABASE IF EXISTS tienda_ropa_online;
+CREATE DATABASE tienda_ropa_online;
+USE tienda_ropa_online;
+
+-- ============================================================
+-- 1. CREACION DE TABLAS
+-- ============================================================
+
+CREATE TABLE clientes (
+    id_cliente INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    apellido VARCHAR(50) NOT NULL,
+    direccion VARCHAR(150),
+    correo_electronico VARCHAR(100) UNIQUE NOT NULL,
+    telefono VARCHAR(20)
+);
+
+CREATE TABLE productos (
+    id_producto INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(80) NOT NULL,
+    descripcion VARCHAR(255),
+    precio DECIMAL(10,2) NOT NULL,
+    categoria VARCHAR(50) NOT NULL,
+    stock INT NOT NULL
+);
+
+CREATE TABLE pedidos (
+    id_pedido INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    fecha DATE NOT NULL,
+    estado VARCHAR(30) NOT NULL,
+    total DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_pedidos_clientes
+        FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE ventas (
+    id_venta INT AUTO_INCREMENT PRIMARY KEY,
+    id_pedido INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT NOT NULL,
+    precio_venta DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_ventas_pedidos
+        FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_ventas_productos
+        FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+-- ============================================================
+-- 2. INSERCION DE REGISTROS
+-- ============================================================
+
+INSERT INTO clientes (nombre, apellido, direccion, correo_electronico, telefono) VALUES
+('Ana', 'Perez', 'Av. Central 123', 'ana.perez@email.com', '04141234567'),
+('Carlos', 'Gomez', 'Calle Norte 45', 'carlos.gomez@email.com', '04149876543'),
+('Maria', 'Rodriguez', 'Urb. Las Flores 78', 'maria.rodriguez@email.com', '04145556677'),
+('Luis', 'Fernandez', 'Av. Libertador 90', 'luis.fernandez@email.com', '04142223344'),
+('Sofia', 'Martinez', 'Calle Sur 12', 'sofia.martinez@email.com', '04143334455');
+
+INSERT INTO productos (nombre, descripcion, precio, categoria, stock) VALUES
+('Camiseta Basica Blanca', 'Camiseta de algodon color blanco', 10.00, 'Camisetas', 100),
+('Camiseta Negra', 'Camiseta de algodon color negro', 12.00, 'Camisetas', 80),
+('Jeans Azul', 'Pantalon jeans azul clasico', 35.00, 'Pantalones', 50),
+('Vestido Floral', 'Vestido casual con estampado floral', 45.00, 'Vestidos', 30),
+('Chaqueta Denim', 'Chaqueta de mezclilla azul', 60.00, 'Chaquetas', 25);
+
+INSERT INTO pedidos (id_cliente, fecha, estado, total) VALUES
+(1, CURDATE() - INTERVAL 5 DAY, 'Pagado', 32.00),
+(2, CURDATE() - INTERVAL 15 DAY, 'Enviado', 45.00),
+(1, CURDATE() - INTERVAL 40 DAY, 'Pagado', 35.00),
+(3, CURDATE() - INTERVAL 60 DAY, 'Pagado', 70.00),
+(4, CURDATE() - INTERVAL 200 DAY, 'Completado', 120.00),
+(5, CURDATE() - INTERVAL 370 DAY, 'Completado', 60.00),
+(2, CURDATE() - INTERVAL 10 DAY, 'Pendiente', 24.00),
+(3, CURDATE() - INTERVAL 8 DAY, 'Pendiente', 0.00); -- Pedido sin venta asociada para probar DELETE
+
+INSERT INTO ventas (id_pedido, id_producto, cantidad, precio_venta) VALUES
+(1, 1, 2, 10.00),
+(1, 2, 1, 12.00),
+(2, 4, 1, 45.00),
+(3, 3, 1, 35.00),
+(4, 1, 3, 10.00),
+(4, 2, 2, 12.00),
+(5, 5, 2, 60.00),
+(6, 5, 1, 60.00),
+(7, 2, 2, 12.00);
+
+-- ============================================================
+-- 3. CONSULTAS AVANZADAS CON SELECT
+-- ============================================================
+
+-- Consulta 1:
+-- Obtener nombre completo, direccion y correo electronico de clientes
+-- que han realizado pedidos en los ultimos 30 dias.
+
+SELECT DISTINCT
+    CONCAT(c.nombre, ' ', c.apellido) AS nombre_completo,
+    c.direccion,
+    c.correo_electronico
+FROM clientes c
+INNER JOIN pedidos p ON c.id_cliente = p.id_cliente
+WHERE p.fecha >= CURDATE() - INTERVAL 30 DAY;
+
+-- Consulta 2:
+-- Mostrar los productos con mayor cantidad de ventas en el ultimo mes,
+-- junto con el total vendido de cada uno.
+
+SELECT
+    pr.id_producto,
+    pr.nombre AS producto,
+    SUM(v.cantidad) AS total_unidades_vendidas
+FROM productos pr
+INNER JOIN ventas v ON pr.id_producto = v.id_producto
+INNER JOIN pedidos p ON v.id_pedido = p.id_pedido
+WHERE p.fecha >= CURDATE() - INTERVAL 1 MONTH
+GROUP BY pr.id_producto, pr.nombre
+ORDER BY total_unidades_vendidas DESC;
+
+-- Consulta 3:
+-- Listar los clientes que han realizado mas pedidos en el ultimo año,
+-- ordenados por mayor cantidad de pedidos.
+
+SELECT
+    c.id_cliente,
+    CONCAT(c.nombre, ' ', c.apellido) AS nombre_completo,
+    COUNT(p.id_pedido) AS cantidad_pedidos
+FROM clientes c
+INNER JOIN pedidos p ON c.id_cliente = p.id_cliente
+df
+
+-- ============================================================
+-- 4. ACTUALIZACION CON UPDATE
+-- ============================================================
+
+-- Actualizacion 1:
+-- Aumentar el precio de todos los productos de la categoria "Camisetas" en 10%.
+
+UPDATE productos
+SET precio = precio * 1.10
+WHERE categoria = 'Camisetas';
+
+-- Verificacion del UPDATE
+SELECT id_producto, nombre, categoria, precio
+FROM productos
+WHERE categoria = 'Camisetas';
+
+-- ============================================================
+-- 5. ELIMINACION CON DELETE
+-- ============================================================
+
+-- Eliminacion 2:
+-- Eliminar los pedidos que no tengan ventas asociadas.
+
+DELETE FROM pedidos
+WHERE id_pedido NOT IN (
+    SELECT id_pedido
+    FROM ventas
+);
+
+-- Verificacion del DELETE
+SELECT p.id_pedido, p.fecha, p.estado, p.total
+FROM pedidos p
+LEFT JOIN ventas v ON p.id_pedido = v.id_pedido
+WHERE v.id_venta IS NULL;
+
+-- ============================================================
+-- 6. CREACION DE VISTAS
+-- ============================================================
+
+-- Vista 1:
+-- Crear una vista llamada vista_clientes_pedidos que muestre
+-- nombre completo del cliente, fecha del pedido y total del pedido.
+
+CREATE OR REPLACE VIEW vista_clientes_pedidos AS
+SELECT
+    CONCAT(c.nombre, ' ', c.apellido) AS nombre_completo,
+    p.fecha AS fecha_pedido,
+    p.total AS total_pedido
+FROM clientes c
+INNER JOIN pedidos p ON c.id_cliente = p.id_cliente;
+
+-- Consulta para visualizar la vista creada
+SELECT *
+FROM vista_clientes_pedidos;
