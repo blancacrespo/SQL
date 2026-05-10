@@ -1,0 +1,129 @@
+CREATE TABLE usuarios(
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255),
+    nombre VARCHAR(100),
+    apellido VARCHAR(100),
+    rol VARCHAR(50)
+);
+
+CREATE TABLE posts(
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(255),
+    contenido TEXT,
+    fecha_creacion TIMESTAMP,
+    fecha_actualizacion TIMESTAMP,
+    destacado BOOLEAN,
+    usuario_id BIGINT,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+-- Pregunta 1: Crea y agrega al entregable las consultas para completar el setup de acuerdo a lo pedido
+CREATE TABLE comentarios(
+    id SERIAL PRIMARY KEY,
+    contenido TEXT,
+    fecha_creacion TIMESTAMP,
+    usuario_id BIGINT,
+    post_id BIGINT,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    FOREIGN KEY (post_id) REFERENCES posts(id)
+);
+
+INSERT INTO usuarios (email, nombre, apellido, rol) VALUES
+('admin@correo.com', 'Admin', 'Principal', 'administrador'),
+('javiera.rivillo@correo.com', 'Javiera', 'Rivillo', 'usuario'),
+('juan@correo.com', 'Juan', 'Basoalto', 'usuario'),
+('camilo@correo.com', 'Camilo', 'Ayala', 'usuario'),
+('nicolas@correo.com', 'Nicolas', 'Rojas', 'usuario');
+
+INSERT INTO posts (titulo, contenido, fecha_creacion, fecha_actualizacion, destacado, usuario_id) VALUES
+('Cómo aprender SQL desde 0', 'Conceptos básicos', '2026-04-07 10:00:00', '2026-04-07 10:30:00', true, 1),
+('Errores comunes', 'Errores comunes al usar JOIN', '2026-04-07 11:00:00', '2026-04-07 11:20:00', false, 1),
+('Mi experiencia aprendiendo programación', 'Conoce mi proceso', '2026-04-07 12:00:00', '2026-04-07 12:10:00', true, 2),
+('Tips para estudiar mejor', 'Conceptos prácticos', '2026-04-07 13:00:00', '2026-04-07 13:30:00', false, 2),
+('Post random', 'Post de broma', '2026-04-07 14:00:00', '2026-04-07 14:15:00', true, NULL);
+
+INSERT INTO comentarios (contenido, fecha_creacion, usuario_id, post_id) VALUES
+('Me encantó este post, muy claro', '2026-04-07 15:00:00', 1, 1),
+('No entendí una parte, ¿pueden explicarla mejor?', '2026-04-07 15:10:00', 2, 1),
+('Buenísimo, me ayudó mucho', '2026-04-07 15:20:00', 3, 1),
+('Muy buen contenido', '2026-04-07 15:30:00', 1, 2),
+('Me gustaría más ejemplos', '2026-04-07 15:40:00', 2, 2);
+
+-- Pregunta 2: Cruza los datos de la tabla usuarios y posts, mostrando las siguientes columnas: nombre y email del usuario junto al titulo y contenido del post.
+SELECT u.nombre, u.email, p.titulo, p.contenido
+FROM usuarios u
+INNER JOIN posts p
+ON u.id = p.usuario_id;
+
+-- u alias de usuarios
+-- p alias de posts
+
+-- Pregunta 3: Muestra el id, titulo y contenido de los posts de los administradores
+SELECT p.id, p.titulo, p.contenido
+FROM posts p
+INNER JOIN usuarios u
+ON p.usuario_id = u.id
+WHERE u.rol = 'administrador';
+
+-- Pregunta 4: Cuenta la cantidad de posts de cada usuario. a. La tabla resultante debe mostrar el id e email del usuario junto con la cantidad de posts de cada usuario.
+SELECT u.id, u.email, COUNT(p.id) AS cantidad_posts
+FROM usuarios u
+LEFT JOIN posts p
+ON u.id = p.usuario_id
+GROUP BY u.id, u.email
+ORDER BY u.id;
+
+-- Pregunta 5: Muestra el email del usuario que ha creado más posts. a. Aqui la tabla resultante tiene un unico registro y muestra solo el email
+SELECT u.email
+FROM usuarios u
+INNER JOIN posts p
+ON u.id = p.usuario_id
+GROUP BY u.id, u.email
+ORDER BY COUNT(p.id) DESC
+LIMIT 1;
+
+-- Pregunta 6: Muestra la fecha del ultimo post de cada usuario
+SELECT u.id, u.email, MAX(p.fecha_creacion) AS ultimo_post
+FROM usuarios u
+LEFT JOIN posts p
+ON u.id = p.usuario_id
+GROUP BY u.id, u.email
+ORDER BY u.id;
+
+-- Pregunta 7: Muestra el titulo y contenido del post (articulo) con mas comentarios.
+SELECT p.titulo, p.contenido
+FROM posts p
+INNER JOIN comentarios c
+ON p.id = c.post_id
+GROUP BY p.id, p.titulo, p.contenido
+ORDER BY COUNT(c.id) DESC
+LIMIT 1;
+
+-- Pregunta 8: Muestra en una tabla el titulo de cada post, el contenido de cada post y el contenido de cada comentario asociado a los posts mostrados, junto con el email del usuario que lo escribio.
+SELECT p.titulo, p.contenido, c.contenido AS comentario, u.email
+FROM posts p
+INNER JOIN comentarios c
+ON p.id = c.post_id
+INNER JOIN usuarios u
+ON c.usuario_id = u.id
+ORDER BY p.id, c.id;
+
+-- Pregunta 9: Muestra el contenido del ultimo comentario de cada usuario.
+SELECT u.email, c.contenido, c.fecha_creacion
+FROM usuarios u
+INNER JOIN comentarios c
+ON u.id = c.usuario_id
+WHERE (c.usuario_id, c.fecha_creacion) IN (
+    SELECT usuario_id, MAX(fecha_creacion)
+    FROM comentarios
+    GROUP BY usuario_id
+)
+ORDER BY u.id;
+
+-- Pregunta 10: Muestra los emails de los usuarios que no han escrito ningun comentario
+SELECT u.email
+FROM usuarios u
+LEFT JOIN comentarios c
+ON u.id = c.usuario_id
+GROUP BY u.id, u.email
+HAVING COUNT(c.id) = 0;
